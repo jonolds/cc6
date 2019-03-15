@@ -22,7 +22,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1552500772982</id>
+			<id>1552641607826</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
@@ -52,11 +52,23 @@
 						<id>org.eclipse.ui.ide.multiFilter</id>
 						<arguments>1.0-name-matches-false-false-push.bat</arguments>
 					</matcher>
+					<matcher>
+						<id>org.eclipse.ui.ide.multiFilter</id>
+						<arguments>1.0-name-matches-false-false-command.txt</arguments>
+					</matcher>
+					<matcher>
+						<id>org.eclipse.ui.ide.multiFilter</id>
+						<arguments>1.0-name-matches-false-false-build-FIX</arguments>
+					</matcher>
+					<matcher>
+						<id>org.eclipse.ui.ide.multiFilter</id>
+						<arguments>1.0-name-matches-false-false-*.gsheet</arguments>
+					</matcher>
 				</arguments>
 			</matcher>
 		</filter>
 		<filter>
-			<id>1552500772998</id>
+			<id>1552641607834</id>
 			<name></name>
 			<type>10</type>
 			<matcher>
