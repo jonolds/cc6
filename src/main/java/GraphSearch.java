@@ -48,7 +48,7 @@ public class GraphSearch extends Configured implements Tool {
 			if (node.getColor() == Node.Color.GRAY) {
 				for (int edge : node.getEdges()) {
 					Node vnode = new Node(edge);
-					vnode.setDistance(node.getDist() + 1);
+					vnode.setCost(node.getCost() + 1);
 					vnode.setColor(Node.Color.GRAY);
 					output.collect(new IntWritable(vnode.getId()), vnode.getLine());
 				}
@@ -79,15 +79,15 @@ public class GraphSearch extends Configured implements Tool {
 				if(u.getEdges().size() > 0)
 					edges = u.getEdges();
 				// Save the minimum distance
-				if(u.getDist() < distance)
-					distance = u.getDist();
+				if(u.getCost() < distance)
+					distance = u.getCost();
 				// Save the darkest color
 				if(u.getColor().ordinal() > color.ordinal())
 					color = u.getColor();
 			}
 
 			Node n = new Node(key.get());
-			n.setDistance(distance);
+			n.setCost(distance);
 			n.setEdges(edges);
 			n.setColor(color);
 			output.collect(key, new Text(n.getLine()));
@@ -98,32 +98,38 @@ public class GraphSearch extends Configured implements Tool {
 	/** The main driver for word count map/reduce program. Invoke this method to submit the map/reduce job.
 	     @throws IOException When there is communication problems with the job tracker. */
 	public int run(String[] args) throws Exception {
-		int iters = 0;
-		while (iters < 4) {
-			JobConf conf = getJobConf(args);
+		//Get command line arguments. -i <#Iterations>  is required.
+		int maxIters = 0, mapNum = 3, redNum = 3;
+		for (int i = 0; i < args.length; ++i) {
+			mapNum = ("-m".equals(args[i])) ? Integer.parseInt(args[++i]) : mapNum;
+			redNum = ("-r".equals(args[i])) ? Integer.parseInt(args[++i]) : redNum;
+			maxIters = ("-i".equals(args[i])) ? Integer.parseInt(args[++i]) : maxIters;
+		}
+		if (maxIters < 1) {
+			System.err.println("Usage: -i <# of iterations> is a required command line argument");
+			System.exit(2);
+		}
+
+		for(int iters = 0; iters < maxIters; iters++) {
+			JobConf conf = getJobConf(args, mapNum, redNum);
 			String input = (iters == 0) ? "input" : "output-graph-" + iters;
 			FileInputFormat.setInputPaths(conf, new Path(input));
 			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iters + 1)));
 			JobClient.runJob(conf);
-			iters++;
 		}
 		return 0;
 	}
 	
-	private JobConf getJobConf(String[] args) {
+	private JobConf getJobConf(String[] args, int mapNum, int redNum) {
 		JobConf conf = new JobConf(getConf(), GraphSearch.class);
 		conf.setJobName("graphsearch");
 		conf.setOutputKeyClass(IntWritable.class);
 		conf.setOutputValueClass(Text.class);
 		conf.setMapperClass(MapClass.class);
 		conf.setReducerClass(Reduce.class);
+		conf.setNumMapTasks(mapNum);
+		conf.setNumReduceTasks(redNum);
 
-		for (int i = 0; i < args.length; ++i) {
-			if ("-m".equals(args[i]))
-				conf.setNumMapTasks(Integer.parseInt(args[++i]));
-			else if ("-r".equals(args[i]))
-				conf.setNumReduceTasks(Integer.parseInt(args[++i]));
-		}
 		LOG.info("The number of reduce tasks has been set to " + conf.getNumReduceTasks());
 		LOG.info("The number of mapper tasks has been set to " + conf.getNumMapTasks());
 		return conf;
