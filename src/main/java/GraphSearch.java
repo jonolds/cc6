@@ -27,38 +27,27 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-/** Input is a map in adjacency list format, and performs a breadth-first search. The input format is:
- * "ID	 EDGES|DISTANCE|COLOR"
- * 		ID = the unique identifier for a node (assumed to be an int here)
- * 		EDGES = the list of edges emanating from the node (e.g. 3,8,9,12)
- * 		DISTANCE = the to be determined distance of the node from the source
- * 		COLOR = a simple status tracking field to keep track of when we're finished with a node
- * Source should have distance 0 and be GRAY. Others have distance Integer.MAX_VALUE and color WHITE.*/
 public class GraphSearch extends Configured implements Tool {
 	public static final Log LOG = LogFactory.getLog("org.apache.hadoop.examples.GraphSearch");
 	
-	/** Nodes that are Color.WHITE or Color.BLACK are emitted, as is. For every
-	 * edge of a Color.GRAY node, we emit a new Node with distance incremented by
-	 * one. The Color.GRAY node is then colored black and is also emitted. */
+	/** WHITE and BLACK nodes are emitted as is. For every edge of a GRAY node, we emit a new Node with 
+	 * distance incremented by one. The Color.GRAY node is then colored black and is also emitted. */
 	public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
+		
 		public void map(LongWritable key, Text value, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
-//			LOG.info("MAP EXECUTING FOR KEY [" + key.toString() + "] and value [" + value.toString() + "]");
 			println("M " + value);
 			Node node = new Node(value.toString());
 
 			// For each GRAY node, emit each of the edges as a new node (also GRAY)
 			if (node.getColor() == Node.Color.GRAY) {
-//				for (int edge : node.getEdges()) {
 				for(int i = 0; i < node.getEdges().size(); i++) {
 					Node vnode = new Node(node.getEdges().get(i));
-					vnode.setCost(node.getCost() + node.getWeights().get(i));
-					vnode.setColor(Node.Color.GRAY);
+					vnode.setCostColor(node.getCost() + node.getWeights().get(i), Node.Color.GRAY);
 					output.collect(new IntWritable(vnode.getId()), vnode.getLine());
 				}
 				node.setColor(Node.Color.BLACK);
 			}
 			output.collect(new IntWritable(node.getId()), node.getLine());
-//			LOG.info("MAP OUTPUTTING FOR KEY [" + node.getId() + "] and value [" + node.getLine() + "]");
 		}
 	}
 
@@ -68,43 +57,29 @@ public class GraphSearch extends Configured implements Tool {
 		/** Make a new node which combines all information for this single node id. The Node should have
 		 * - 1)The full list of edges. 2)The minimum distance. 3)The darkest Color. */
 		public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
-//			LOG.info("REDUCE EXECUTING FOR INPUT KEY [" + key.toString() + "]");
 			
 			List<String> vals = new ArrayList<>();
 			while(values.hasNext())
 				vals.add(values.next().toString());
 			
-			List<Integer> edges = null;
-			List<Integer> weights = null;
+			List<Integer> edges = null, weights = null;
 			int cost = Integer.MAX_VALUE;
 			Node.Color color = Node.Color.WHITE;
 
 			for(String value : vals) {
 				println("R " + key + "\t" + value);
-//				Text value = values.next();
 				Node u = new Node(key.get() + "\t" + value);
 
 				// One one copy of the node will be the fully expanded version, which includes the edges
-				if(u.getEdges().size() > 0)
-					edges = u.getEdges();
-				if(u.getWeights().size() > 0)
-					weights = u.getWeights();
-					
-				// Save the minimum cost
-				if(u.getCost() < cost)
-					cost = u.getCost();
-				// Save the darkest color
-				if(u.getColor().ordinal() > color.ordinal())
-					color = u.getColor();
+				edges = (u.getEdges().size() > 0) ? edges = u.getEdges() : edges;
+				weights = (u.getWeights().size() > 0) ? u.getWeights() : weights;
+				// Save the minimum cost and darkest color
+				cost = (u.getCost() < cost) ? cost = u.getCost() : cost;
+				color = (u.getColor().ordinal() > color.ordinal()) ? u.getColor() : color;
 			}
-
-			Node n = new Node(key.get());
-			n.setCost(cost);
-			n.setEdges(edges);
-			n.setWeights(weights);
-			n.setColor(color);
+			
+			Node n = new Node(key.get(), edges, weights, cost, color);
 			output.collect(key, new Text(n.getLine()));
-//			LOG.info("REDUCE OUTPUTTING FOR FINAL KEY [" + key + "] and value [" + n.getLine() + "]");
 		}
 	}
 
