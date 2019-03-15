@@ -17,8 +17,8 @@ public class Node {
 		String[] tokens = value.split("\\|");
 		
 		//!!!!!!!!!!!! FIX WEIGHTS WORKAROUND
-		if(tokens.length == 3)
-			tokens = new String[] {tokens[0], tokens[0], tokens[1], tokens[2]};
+//		if(tokens.length == 3)
+//			tokens = new String[] {tokens[0], tokens[0], tokens[1], tokens[2]};
 
 		//ID
 		this.id = Integer.parseInt(key);

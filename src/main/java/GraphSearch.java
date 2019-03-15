@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,21 +42,23 @@ public class GraphSearch extends Configured implements Tool {
 	 * one. The Color.GRAY node is then colored black and is also emitted. */
 	public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
 		public void map(LongWritable key, Text value, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
-			LOG.info("MAP EXECUTING FOR KEY [" + key.toString() + "] and value [" + value.toString() + "]");
+//			LOG.info("MAP EXECUTING FOR KEY [" + key.toString() + "] and value [" + value.toString() + "]");
+			println("M " + value);
 			Node node = new Node(value.toString());
 
 			// For each GRAY node, emit each of the edges as a new node (also GRAY)
 			if (node.getColor() == Node.Color.GRAY) {
-				for (int edge : node.getEdges()) {
-					Node vnode = new Node(edge);
-					vnode.setCost(node.getCost() + 1);
+//				for (int edge : node.getEdges()) {
+				for(int i = 0; i < node.getEdges().size(); i++) {
+					Node vnode = new Node(node.getEdges().get(i));
+					vnode.setCost(node.getCost() + node.getWeights().get(i));
 					vnode.setColor(Node.Color.GRAY);
 					output.collect(new IntWritable(vnode.getId()), vnode.getLine());
 				}
 				node.setColor(Node.Color.BLACK);
 			}
 			output.collect(new IntWritable(node.getId()), node.getLine());
-			LOG.info("MAP OUTPUTTING FOR KEY [" + node.getId() + "] and value [" + node.getLine() + "]");
+//			LOG.info("MAP OUTPUTTING FOR KEY [" + node.getId() + "] and value [" + node.getLine() + "]");
 		}
 	}
 
@@ -65,33 +68,43 @@ public class GraphSearch extends Configured implements Tool {
 		/** Make a new node which combines all information for this single node id. The Node should have
 		 * - 1)The full list of edges. 2)The minimum distance. 3)The darkest Color. */
 		public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
-			LOG.info("REDUCE EXECUTING FOR INPUT KEY [" + key.toString() + "]");
+//			LOG.info("REDUCE EXECUTING FOR INPUT KEY [" + key.toString() + "]");
+			
+			List<String> vals = new ArrayList<>();
+			while(values.hasNext())
+				vals.add(values.next().toString());
 			
 			List<Integer> edges = null;
-			int distance = Integer.MAX_VALUE;
+			List<Integer> weights = null;
+			int cost = Integer.MAX_VALUE;
 			Node.Color color = Node.Color.WHITE;
 
-			while (values.hasNext()) {
-				Text value = values.next();
-				Node u = new Node(key.get() + "\t" + value.toString());
+			for(String value : vals) {
+				println("R " + key + "\t" + value);
+//				Text value = values.next();
+				Node u = new Node(key.get() + "\t" + value);
 
 				// One one copy of the node will be the fully expanded version, which includes the edges
 				if(u.getEdges().size() > 0)
 					edges = u.getEdges();
-				// Save the minimum distance
-				if(u.getCost() < distance)
-					distance = u.getCost();
+				if(u.getWeights().size() > 0)
+					weights = u.getWeights();
+					
+				// Save the minimum cost
+				if(u.getCost() < cost)
+					cost = u.getCost();
 				// Save the darkest color
 				if(u.getColor().ordinal() > color.ordinal())
 					color = u.getColor();
 			}
 
 			Node n = new Node(key.get());
-			n.setCost(distance);
+			n.setCost(cost);
 			n.setEdges(edges);
+			n.setWeights(weights);
 			n.setColor(color);
 			output.collect(key, new Text(n.getLine()));
-			LOG.info("REDUCE OUTPUTTING FOR FINAL KEY [" + key + "] and value [" + n.getLine() + "]");
+//			LOG.info("REDUCE OUTPUTTING FOR FINAL KEY [" + key + "] and value [" + n.getLine() + "]");
 		}
 	}
 
@@ -99,11 +112,11 @@ public class GraphSearch extends Configured implements Tool {
 	     @throws IOException When there is communication problems with the job tracker. */
 	public int run(String[] args) throws Exception {
 		//Get command line arguments. -i <#Iterations>  is required.
-		int maxIters = 0, mapNum = 3, redNum = 3;
+		int maxIters = 4, mapNum = 3, redNum = 3;
 		for (int i = 0; i < args.length; ++i) {
 			mapNum = ("-m".equals(args[i])) ? Integer.parseInt(args[++i]) : mapNum;
 			redNum = ("-r".equals(args[i])) ? Integer.parseInt(args[++i]) : redNum;
-			maxIters = ("-i".equals(args[i])) ? Integer.parseInt(args[++i]) : maxIters;
+//			maxIters = ("-i".equals(args[i])) ? Integer.parseInt(args[++i]) : maxIters;
 		}
 		if (maxIters < 1) {
 			System.err.println("Usage: -i <# of iterations> is a required command line argument");
@@ -166,4 +179,5 @@ public class GraphSearch extends Configured implements Tool {
 			new Path(outDir).getFileSystem(conf).delete(new Path(outDir), true);
 		}
 	}
+	public static <T>void println(T t) { System.out.println(t.toString()); }
 }
