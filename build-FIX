@@ -16,3 +16,8 @@ hadoop jar TestJar.jar $mainclass input output
 # CREATE TAR
 tar -cvf ../$tarname.tar *.java input output answer.txt
 cd ..
+
+
+
+###############!!!!!!!!!!!!! CHANGE INPUT BACK ??INPUT-GRAPH
+###############!!!!!!!!!!!!! DELETE OUTPUT COMBINING

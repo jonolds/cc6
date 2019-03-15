@@ -23,7 +23,6 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -49,7 +48,7 @@ public class GraphSearch extends Configured implements Tool {
 			if (node.getColor() == Node.Color.GRAY) {
 				for (int edge : node.getEdges()) {
 					Node vnode = new Node(edge);
-					vnode.setDistance(node.getDistance() + 1);
+					vnode.setDistance(node.getDist() + 1);
 					vnode.setColor(Node.Color.GRAY);
 					output.collect(new IntWritable(vnode.getId()), vnode.getLine());
 				}
@@ -80,8 +79,8 @@ public class GraphSearch extends Configured implements Tool {
 				if(u.getEdges().size() > 0)
 					edges = u.getEdges();
 				// Save the minimum distance
-				if(u.getDistance() < distance)
-					distance = u.getDistance();
+				if(u.getDist() < distance)
+					distance = u.getDist();
 				// Save the darkest color
 				if(u.getColor().ordinal() > color.ordinal())
 					color = u.getColor();
@@ -99,14 +98,14 @@ public class GraphSearch extends Configured implements Tool {
 	/** The main driver for word count map/reduce program. Invoke this method to submit the map/reduce job.
 	     @throws IOException When there is communication problems with the job tracker. */
 	public int run(String[] args) throws Exception {
-		int iterCount = 0;
-		while (iterCount <= 4) {
+		int iters = 0;
+		while (iters < 4) {
 			JobConf conf = getJobConf(args);
-			String input = (iterCount == 0) ? "input" : "output-graph-" + iterCount;
+			String input = (iters == 0) ? "input" : "output-graph-" + iters;
 			FileInputFormat.setInputPaths(conf, new Path(input));
-			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iterCount + 1)));
-			RunningJob job = JobClient.runJob(conf);
-			iterCount++;
+			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iters + 1)));
+			JobClient.runJob(conf);
+			iters++;
 		}
 		return 0;
 	}
