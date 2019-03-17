@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.apache.hadoop.io.Text;
 
+//CC6 Node
 public class Node {
 	public static enum Color { WHITE, GRAY, BLACK };
 	private int id, cost;
@@ -26,10 +27,8 @@ public class Node {
 	public Node(int id, List<Integer> edges, List<Integer> weights, int cost, Color color) {
 		this.id = id; this.edges = edges; this.weights = weights; this.cost = cost; this.color = color;
 	}
-	public Node(int id) { this.id = id; weights.add(0); }
-	
-	public void setCostColor(int cost, Color color) { this.cost = cost; this.color = color; }
-	
+	public Node(int id) { this.id = id; }
+		
 	public Text getLine() {
 		StringBuffer s = new StringBuffer();
 		s.append(edges.stream().map(x->x.toString()).collect(Collectors.joining(","))).append("|");

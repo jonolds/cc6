@@ -3,12 +3,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -28,22 +29,22 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 public class GraphSearch extends Configured implements Tool {
-	public static final Log LOG = LogFactory.getLog("org.apache.hadoop.examples.GraphSearch");
-	
+	String log = "";
 	/** WHITE and BLACK nodes are emitted as is. For every edge of a GRAY node, we emit a new Node with 
 	 * distance incremented by one. The Color.GRAY node is then colored black and is also emitted. */
 	public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
 		
 		public void map(LongWritable key, Text value, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
-			println("M " + value);
+//			println("M " + value);
 			Node node = new Node(value.toString());
 
 			// For each GRAY node, emit each of the edges as a new node (also GRAY)
 			if (node.getColor() == Node.Color.GRAY) {
 				for(int i = 0; i < node.getEdges().size(); i++) {
-					Node vnode = new Node(node.getEdges().get(i));
-					vnode.setCostColor(node.getCost() + node.getWeights().get(i), Node.Color.GRAY);
-					output.collect(new IntWritable(vnode.getId()), vnode.getLine());
+					Node dummynode = new Node(node.getEdges().get(i));
+					dummynode.setCost(node.getWeights().get(i) + node.getCost());
+					dummynode.setColor(Node.Color.GRAY);
+					output.collect(new IntWritable(dummynode.getId()), dummynode.getLine());
 				}
 				node.setColor(Node.Color.BLACK);
 			}
@@ -57,27 +58,28 @@ public class GraphSearch extends Configured implements Tool {
 		/** Make a new node which combines all information for this single node id. The Node should have
 		 * - 1)The full list of edges. 2)The minimum distance. 3)The darkest Color. */
 		public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
-			
-			List<String> vals = new ArrayList<>();
-			while(values.hasNext())
-				vals.add(values.next().toString());
+			List<String> vals = itToList(values);
+//			println("R " + key + "\t" + vals.stream().collect(Collectors.joining("       ")));
 			
 			List<Integer> edges = null, weights = null;
 			int cost = Integer.MAX_VALUE;
 			Node.Color color = Node.Color.WHITE;
 
 			for(String value : vals) {
-				println("R " + key + "\t" + value);
 				Node u = new Node(key.get() + "\t" + value);
 
-				// One one copy of the node will be the fully expanded version, which includes the edges
-				edges = (u.getEdges().size() > 0) ? edges = u.getEdges() : edges;
-				weights = (u.getWeights().size() > 0) ? u.getWeights() : weights;
+				if(u.getEdges().size() > 0)
+					edges = u.getEdges();
+				if(u.getWeights().size() > 0)
+					weights = u.getWeights();
 				// Save the minimum cost and darkest color
-				cost = (u.getCost() < cost) ? cost = u.getCost() : cost;
+				println(key + "    " + "cost: " + cost + "   u.getCost(): " + u.getCost());
+				if(u.getCost() < cost)
+					cost = u.getCost();
+
 				color = (u.getColor().ordinal() > color.ordinal()) ? u.getColor() : color;
 			}
-			
+			println(key + "    cost: " + cost);
 			Node n = new Node(key.get(), edges, weights, cost, color);
 			output.collect(key, new Text(n.getLine()));
 		}
@@ -87,7 +89,7 @@ public class GraphSearch extends Configured implements Tool {
 	     @throws IOException When there is communication problems with the job tracker. */
 	public int run(String[] args) throws Exception {
 		//Get command line arguments. -i <#Iterations>  is required.
-		int maxIters = 4, mapNum = 3, redNum = 3;
+		int maxIters = 11, mapNum = 3, redNum = 3;
 		for (int i = 0; i < args.length; ++i) {
 			mapNum = ("-m".equals(args[i])) ? Integer.parseInt(args[++i]) : mapNum;
 			redNum = ("-r".equals(args[i])) ? Integer.parseInt(args[++i]) : redNum;
@@ -104,6 +106,7 @@ public class GraphSearch extends Configured implements Tool {
 			FileInputFormat.setInputPaths(conf, new Path(input));
 			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iters + 1)));
 			JobClient.runJob(conf);
+			println('\n');
 		}
 		return 0;
 	}
@@ -117,9 +120,6 @@ public class GraphSearch extends Configured implements Tool {
 		conf.setReducerClass(Reduce.class);
 		conf.setNumMapTasks(mapNum);
 		conf.setNumReduceTasks(redNum);
-
-		LOG.info("The number of reduce tasks has been set to " + conf.getNumReduceTasks());
-		LOG.info("The number of mapper tasks has been set to " + conf.getNumMapTasks());
 		return conf;
 	}
 	
@@ -128,14 +128,11 @@ public class GraphSearch extends Configured implements Tool {
 		deleteOutputFolders(conf);
 		int res = ToolRunner.run(conf, new GraphSearch(), args);
 		combineOutputFolders(conf);
+		System.out.println(Integer.MAX_VALUE + 1);
 		System.exit(res);
 	}
 	
-	static int printUsage() {
-		System.out.println("graphsearch [-m <num mappers>] [-r <num reducers>]");
-		ToolRunner.printGenericCommandUsage(System.out);
-		return -1;
-	}
+
 	
 	public static void deleteOutputFolders(Configuration conf) throws IllegalArgumentException, IOException {
 		List<String> folders = Files.list(Paths.get("")).map(x->x.toString()).filter(x->x.startsWith("output")).collect(Collectors.toList());
@@ -143,16 +140,22 @@ public class GraphSearch extends Configured implements Tool {
 			new Path(folder).getFileSystem(conf).delete(new Path(folder), true);
 	}	
 	public static void combineOutputFolders(Configuration conf) throws IOException {
-		List<String> outDirs = Files.list(Paths.get("")).map(x->x.toString()).filter(x->x.startsWith("output-graph")).collect(Collectors.toList());
-		new File("output").mkdir();
-		for(String outDir : outDirs) {
-			List<String> files = Files.list(Paths.get(outDir + "/")).map(x->x.toString()).filter(x->!(x.endsWith("crc")||x.endsWith("SUCCESS"))).collect(Collectors.toList());
-			for(String file : files) {
-				String newName = file.substring(13).replace('\\', '-');
-				Files.copy(new File(file).toPath(), new File("output\\" + newName + ".txt").toPath());
-			}
-			new Path(outDir).getFileSystem(conf).delete(new Path(outDir), true);
+		Collection<File> test = FileUtils.listFiles(new File("."), new WildcardFileFilter("part*"), new WildcardFileFilter("*out*"));
+		FileUtils.writeStringToFile(new File("output" + File.separator + "out.txt"), "input\n" + fileToStr("input/file0"), "UTF-8");
+		for(File x : test) {
+			FileUtils.writeStringToFile(new File("output" + File.separator + "out.txt"), "\n" + x.toString() + "\n" + fileToStr(x.toString()), "UTF-8", true);
+			FileUtils.deleteDirectory(new File(x.getParent()));
 		}
 	}
 	public static <T>void println(T t) { System.out.println(t.toString()); }
+	
+	public static String fileToStr(String filename) throws IOException {
+		return FileUtils.readFileToString(new File(filename), "UTF-8");
+	}
+	public static List<String> itToList(Iterator<Text> it) {
+		List<String> vals = new ArrayList<>();
+		while(it.hasNext())
+			vals.add(it.next().toString());
+		return vals;
+	}
 }
