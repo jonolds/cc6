@@ -65,8 +65,8 @@ public class CC6 extends MRHelp implements Tool {
 				// Save the minimum cost and darkest color
 				if(u.getCost() < cost)
 					cost = u.getCost();
-				color = u.getColor();
-//				color = (u.getColor().ordinal() > color.ordinal()) ? u.getColor() : color;
+				
+				color = (u.getColor().ordinal() > color.ordinal()) ? u.getColor() : color;
 			}
 			Node n = new Node(key.get(), edges, weights, cost, color);
 			output.collect(key, new Text(n.getLine()));
