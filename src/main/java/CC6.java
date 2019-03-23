@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -20,7 +21,6 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 public class CC6 extends MRHelp implements Tool {
-	String log = ""; int maxIters = 0, mp = 3, rd = 3;
 	/** WHITE and BLACK nodes are emitted as is. For every edge of a GRAY node, we emit a new Node with 
 	 * distance incremented by one. The Color.GRAY node is then colored black and is also emitted. */
 	public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
@@ -43,33 +43,42 @@ public class CC6 extends MRHelp implements Tool {
 
 	/** A reducer class that just emits the sum of the input values. */
 	public static class Reduce extends MapReduceBase implements Reducer<IntWritable, Text, IntWritable, Text> {
-
 		/** Make a new node which combines all information for this single node id. The Node should have
 		 * - 1)The full list of edges. 2)The minimum distance. 3)The darkest Color. */
 		public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
 			List<String> vals = itToList(values);
-			
-			List<Integer> edges = null, weights = null;
-			int cost = Integer.MAX_VALUE;
-			Color color = Color.WHITE;
-
+			Node composite = new Node(key.get());
 			print(key);
-			for(String value : vals) {
-				println("\t" + value);
-				Node u = new Node(key.get() + "\t" + value);
-
-				if(u.getEdges().size() > 0)
-					edges = u.getEdges();
-				if(u.getWeights().size() > 0)
-					weights = u.getWeights();
-				// Save the minimum cost and darkest color
-				if(u.getCost() < cost)
-					cost = u.getCost();
-				
-				color = (u.getColor().ordinal() > color.ordinal()) ? u.getColor() : color;
+			if(vals.size() == 1) {
+				println("\t" + vals.get(0));
+				composite = new Node(key.get() + "\t" + vals.get(0));	
 			}
-			Node n = new Node(key.get(), edges, weights, cost, color);
-			output.collect(key, new Text(n.getLine()));
+			
+			else {
+				int cost = Integer.MAX_VALUE;
+				Color color = null;
+
+				List<Node> nodes = vals.stream().map(x->new Node(key.get() + "\t" + x)).collect(Collectors.toList());
+				int minCostIndex = 0;
+				//GET EDGES AND WEIGHTS
+				for(int i  = 0; i < nodes.size(); i++) {
+					println("\t" + vals.get(i));
+					Node n = nodes.get(i);
+					if(n.getEdges().size() > 0) {
+						composite.setEdges(n.getEdges());
+						composite.setWeights(n.getWeights());
+					}
+					if(n.getCost() < cost) {
+						cost = n.getCost();
+						minCostIndex = i;
+					}
+					if(n.getColor() == Color.WHITE)
+						color = Color.GRAY;
+				}
+				composite.setColor(color == null ? nodes.get(minCostIndex).getColor() : color);
+				composite.setCost(cost);
+			}
+			output.collect(key, new Text(composite.getLine()));
 		}
 	}
 
@@ -77,13 +86,12 @@ public class CC6 extends MRHelp implements Tool {
 	     @throws IOException When there is communication problems with the job tracker. */
 	public int run(String[] args) throws Exception {
 		//Get command line arguments. -i <#Iterations>  is required.
-//		int maxIters = 11, mapNum = 3, redNum = 3;
-		int mapNum = 3, redNum = 3;
+		int maxIters = 11, mapNum = 3, redNum = 3;
 
 		for (int i = 0; i < args.length; ++i) {
 			mapNum = ("-m".equals(args[i])) ? Integer.parseInt(args[++i]) : mapNum;
 			redNum = ("-r".equals(args[i])) ? Integer.parseInt(args[++i]) : redNum;
-//			maxIters = ("-i".equals(args[i])) ? Integer.parseInt(args[++i]) : maxIters;
+			maxIters = ("-i".equals(args[i])) ? Integer.parseInt(args[++i]) : maxIters;
 		}
 		if (maxIters < 1) {
 			System.err.println("Usage: -i <# of iterations> is a required command line argument");
@@ -91,13 +99,13 @@ public class CC6 extends MRHelp implements Tool {
 		}
 
 		for(int iters = 0; iters < maxIters; iters++) {
-			println("=============" + iters + "===============");
-			JobConf conf = getJobConf(args, mp, rd);
+			println("=========" + iters + "==========");
+			JobConf conf = getJobConf(args, mapNum, redNum);
 			String input = (iters == 0) ? "input" : "output-graph-" + iters;
 			FileInputFormat.setInputPaths(conf, new Path(input));
 			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iters + 1)));
 			JobClient.runJob(conf);
-			print("\n\n\n\n\n\n\n\n\n\n");
+			println("");
 		}
 		return 0;
 	}

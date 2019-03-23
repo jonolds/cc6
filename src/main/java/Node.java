@@ -24,9 +24,7 @@ public class Node {
 		this.cost = (tokens[2].equals("Integer.MAX_VALUE")) ? Integer.MAX_VALUE : Integer.parseInt(tokens[2]);
 		this.color = Color.valueOf(tokens[3]);
 	}
-	public Node(int id, List<Integer> edges, List<Integer> weights, int cost, Color color) {
-		this.id = id; this.edges = edges; this.weights = weights; this.cost = cost; this.color = color;
-	}
+
 	public Node(int id) { this.id = id; }
 		
 	public Text getLine() {
