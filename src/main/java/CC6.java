@@ -20,7 +20,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 public class CC6 extends MRHelp implements Tool {
-	String log = ""; int maxIters = 4, mp = 3, rd = 3;
+	String log = ""; int maxIters = 0, mp = 3, rd = 3;
 	/** WHITE and BLACK nodes are emitted as is. For every edge of a GRAY node, we emit a new Node with 
 	 * distance incremented by one. The Color.GRAY node is then colored black and is also emitted. */
 	public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
@@ -53,10 +53,10 @@ public class CC6 extends MRHelp implements Tool {
 			int cost = Integer.MAX_VALUE;
 			Color color = Color.WHITE;
 
-			print("\t\t\t\t\t\t\t" + key);
-			for(int i = 0; i < vals.size(); i++) {
-				println(i==0?("\t" + vals.get(i)) : ("\t\t\t\t\t\t\t" + "\t" + vals.get(i)));
-				Node u = new Node(key.get() + "\t" + vals.get(i));
+			print(key);
+			for(String value : vals) {
+				println("\t" + value);
+				Node u = new Node(key.get() + "\t" + value);
 
 				if(u.getEdges().size() > 0)
 					edges = u.getEdges();
@@ -91,12 +91,13 @@ public class CC6 extends MRHelp implements Tool {
 		}
 
 		for(int iters = 0; iters < maxIters; iters++) {
-			println("\t\t\t\t\t\t\t" + "=============" + iters + "===============");
+			println("=============" + iters + "===============");
 			JobConf conf = getJobConf(args, mp, rd);
 			String input = (iters == 0) ? "input" : "output-graph-" + iters;
 			FileInputFormat.setInputPaths(conf, new Path(input));
 			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iters + 1)));
 			JobClient.runJob(conf);
+			print("\n\n\n\n\n\n\n\n\n\n");
 		}
 		return 0;
 	}

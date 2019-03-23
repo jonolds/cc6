@@ -38,12 +38,16 @@ public class Node {
 	}	
 
 	public int getId() { return this.id; }
+	
 	public List<Integer> getEdges() { return this.edges; }
 	public void setEdges(List<Integer> edges) { this.edges = edges; }
+	
 	public List<Integer> getWeights() { return this.weights; }
 	public void setWeights(List<Integer> weights) { this.weights = weights; }
+	
 	public int getCost() { return this.cost; }
 	public void setCost(int cost) { this.cost = cost; }
+	
 	public Color getColor() { return this.color; }
 	public void setColor(Color color) { this.color = color; }
 }
