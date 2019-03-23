@@ -5,9 +5,9 @@ import java.util.stream.Collectors;
 
 import org.apache.hadoop.io.Text;
 
+enum Color { WHITE, GRAY, BLACK }
 //CC6 Node
 public class Node {
-	public static enum Color { WHITE, GRAY, BLACK };
 	private int id, cost;
 	private List<Integer> edges = new ArrayList<>(), weights = new ArrayList<>();
 	private Color color = Color.WHITE;
@@ -30,8 +30,7 @@ public class Node {
 	public Node(int id) { this.id = id; }
 		
 	public Text getLine() {
-		StringBuffer s = new StringBuffer();
-		s.append(edges.stream().map(x->x.toString()).collect(Collectors.joining(","))).append("|");
+		StringBuffer s = new StringBuffer(edges.stream().map(x->x.toString()).collect(Collectors.joining(",")) + "|");
 		s.append(weights.stream().map(x->x.toString()).collect(Collectors.joining(","))).append("|");
 		s.append(this.cost < Integer.MAX_VALUE ? this.cost : "Integer.MAX_VALUE").append("|");
 		s.append(color.toString());
