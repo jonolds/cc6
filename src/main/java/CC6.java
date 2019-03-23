@@ -1,9 +1,21 @@
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -20,7 +32,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-public class CC6 extends MRHelp implements Tool {
+public class CC6 extends CC6Helper implements Tool {
 	/** WHITE and BLACK nodes are emitted as is. For every edge of a GRAY node, we emit a new Node with 
 	 * distance incremented by one. The Color.GRAY node is then colored black and is also emitted. */
 	public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
@@ -46,7 +58,7 @@ public class CC6 extends MRHelp implements Tool {
 		/** Make a new node which combines all information for this single node id. The Node should have
 		 * - 1)The full list of edges. 2)The minimum distance. 3)The darkest Color. */
 		public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
-			List<String> vals = itToList(values);
+			List<String> vals = iterFiniteStream(values).map(x->x.toString()).collect(Collectors.toList());
 			Node composite = new Node(key.get());
 			print(key);
 			if(vals.size() == 1) {
@@ -86,7 +98,7 @@ public class CC6 extends MRHelp implements Tool {
 	     @throws IOException When there is communication problems with the job tracker. */
 	public int run(String[] args) throws Exception {
 		//Get command line arguments. -i <#Iterations>  is required.
-		int maxIters = 11, mapNum = 3, redNum = 3;
+		int maxIters = 0, mapNum = 3, redNum = 3;
 
 		for (int i = 0; i < args.length; ++i) {
 			mapNum = ("-m".equals(args[i])) ? Integer.parseInt(args[++i]) : mapNum;
@@ -129,4 +141,45 @@ public class CC6 extends MRHelp implements Tool {
 		combineOutputs(conf, "output-graph");
 		System.exit(res);
 	}
+}
+
+class CC6Helper extends Configured {
+	static void clearOutput(Configuration conf) throws IllegalArgumentException, IOException {
+		List<String> outDirs = Files.list(Paths.get("")).map(x->x.toString()).filter(x->x.startsWith("output")).collect(Collectors.toList());
+		for(String folder : outDirs)
+			new Path(folder).getFileSystem(conf).delete(new Path(folder), true);
+	}
+	
+	static void combineOutputs(Configuration conf, String outDirPrefix) throws IOException {
+		List<String> outputStringsList = new ArrayList<>();
+		List<String> outDirs = getFilesStartingWithInDir(outDirPrefix, ".");
+		for(String outFolder : outDirs) {
+			outputStringsList.add(getCombinedOutputsInFolderAsString(conf, outFolder));
+			new Path(outFolder).getFileSystem(conf).delete(new Path(outFolder), true);
+		}
+		String output = outputStringsList.stream().collect(Collectors.joining("\n"));
+		FileUtils.writeStringToFile(new File(outDirPrefix + File.separator + "outAll.txt"), output, "UTF-8", true);
+	}
+
+	static String getCombinedOutputsInFolderAsString(Configuration conf, String outFolder) throws IOException {
+		Collection<File> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null);
+		List<String> out_lines = new ArrayList<>();
+		for(File file: out_parts)
+			out_lines.addAll(FileUtils.readLines(file, "UTF-8"));
+		Collections.sort(out_lines);
+		return outFolder + "\n\t" + out_lines.stream().collect(Collectors.joining("\n\t"));
+	}
+	
+	static List<String> getFilesStartingWithInDir(String start, String dir) throws IOException {
+		List<String> dirs = new ArrayList<>();
+		Files.walk(Paths.get(dir), 1).filter(x->x != new Path(dir) && x.toString().startsWith(dir + File.separator + start)).forEach(x->dirs.add(x.toString()));
+		return dirs;
+	}
+	
+	static <T> Stream<T> iterFiniteStream(final Iterator<T> iterator) {
+	    return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false);
+	}
+	
+	static <T>void println(T t) { System.out.println(t.toString()); }
+	static <T>void print(T t) { System.out.print(t.toString()); }
 }
