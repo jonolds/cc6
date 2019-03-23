@@ -1,18 +1,8 @@
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -29,12 +19,11 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-public class CC6 extends Configured implements Tool {
-	String log = ""; int maxIters = 3;
+public class CC6 extends MRHelp implements Tool {
+	String log = ""; int maxIters = 4, mp = 3, rd = 3;
 	/** WHITE and BLACK nodes are emitted as is. For every edge of a GRAY node, we emit a new Node with 
 	 * distance incremented by one. The Color.GRAY node is then colored black and is also emitted. */
 	public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
-		
 		public void map(LongWritable key, Text value, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
 			Node node = new Node(value.toString());
 
@@ -64,10 +53,10 @@ public class CC6 extends Configured implements Tool {
 			int cost = Integer.MAX_VALUE;
 			Color color = Color.WHITE;
 
-//			println(key);
-			for(String value : vals) {
-//				println("\t" + value);
-				Node u = new Node(key.get() + "\t" + value);
+			print("\t\t\t\t\t\t\t" + key);
+			for(int i = 0; i < vals.size(); i++) {
+				println(i==0?("\t" + vals.get(i)) : ("\t\t\t\t\t\t\t" + "\t" + vals.get(i)));
+				Node u = new Node(key.get() + "\t" + vals.get(i));
 
 				if(u.getEdges().size() > 0)
 					edges = u.getEdges();
@@ -102,13 +91,12 @@ public class CC6 extends Configured implements Tool {
 		}
 
 		for(int iters = 0; iters < maxIters; iters++) {
-//			println("=============" + iters + "===============");
-			JobConf conf = getJobConf(args, mapNum, redNum);
+			println("\t\t\t\t\t\t\t" + "=============" + iters + "===============");
+			JobConf conf = getJobConf(args, mp, rd);
 			String input = (iters == 0) ? "input" : "output-graph-" + iters;
 			FileInputFormat.setInputPaths(conf, new Path(input));
 			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iters + 1)));
 			JobClient.runJob(conf);
-//			println("");
 		}
 		return 0;
 	}
@@ -126,54 +114,10 @@ public class CC6 extends Configured implements Tool {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		long start = System.nanoTime();
 		Configuration conf = new Configuration();
 		clearOutput(conf);
 		int res = ToolRunner.run(conf, new CC6(), args);
 		combineOutputs(conf, "output-graph");
-		println("Elapsed: " + (System.nanoTime() - start)*.000000001 + "s");
 		System.exit(res);
-	}
-	
-	public static void combineOutputs(Configuration conf, String outDirPrefix) throws IOException {
-		List<String> outputStringsList = new ArrayList<>();
-		List<String> outDirs = getFilesStartingWithInDir(outDirPrefix, ".");
-		for(String outFolder : outDirs) {
-			outputStringsList.add(getCombinedOutputsInFolderAsString(conf, outFolder));
-			new Path(outFolder).getFileSystem(conf).delete(new Path(outFolder), true);
-		}
-		String output = outputStringsList.stream().collect(Collectors.joining("\n"));
-		FileUtils.writeStringToFile(new File(outDirPrefix + File.separator + "outAll6.txt"), output, "UTF-8", true);
-	}
-
-	public static String getCombinedOutputsInFolderAsString(Configuration conf, String outFolder) throws IOException {
-		Collection<File> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null);
-		List<String> out_lines = new ArrayList<>();
-		for(File file: out_parts)
-			out_lines.addAll(FileUtils.readLines(file, "UTF-8"));
-		Collections.sort(out_lines);
-		return outFolder + "\n\t" + out_lines.stream().collect(Collectors.joining("\n\t"));
-	}
-	
-	public static List<String> getFilesStartingWithInDir(String start, String dir) throws IOException {
-		List<String> dirs = new ArrayList<>();
-		Files.walk(Paths.get(dir), 1).filter(x->x != new Path(dir) && x.toString().startsWith(dir + File.separator + start)).forEach(x->dirs.add(x.toString()));
-		return dirs;
-	}
-	
-	public static void clearOutput(Configuration conf) throws IllegalArgumentException, IOException {
-		List<String> outDirs = Files.list(Paths.get("")).map(x->x.toString()).filter(x->x.startsWith("output")).collect(Collectors.toList());
-		for(String folder : outDirs)
-			new Path(folder).getFileSystem(conf).delete(new Path(folder), true);
-	}
-
-	public static List<String> itToList(Iterator<Text> it) {
-		List<String> vals = new ArrayList<>();
-		it.forEachRemaining(x->vals.add(x.toString()));
-		return vals;
-	}
-
-	public static <T>void println(T t) {
-		System.out.println(t.toString()); 
 	}
 }
