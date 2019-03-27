@@ -29,6 +29,7 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -56,9 +57,9 @@ public class CC6 extends CC6Helper implements Tool {
 		public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
 			List<String> vals = iterFiniteStream(values).map(x->x.toString()).collect(Collectors.toList());
 			Node composite = new Node(key.get());
-			print(key);
+//			print(key);
 			if(vals.size() == 1) {
-				println("\t" + vals.get(0));
+//				println("\t" + vals.get(0));
 				composite = new Node(key.get() + "\t" + vals.get(0));	
 			}
 			
@@ -70,7 +71,7 @@ public class CC6 extends CC6Helper implements Tool {
 				int minCostIndex = 0;
 				//GET EDGES AND WEIGHTS
 				for(int i  = 0; i < nodes.size(); i++) {
-					println("\t" + vals.get(i));
+//					println("\t" + vals.get(i));
 					Node n = nodes.get(i);
 					if(n.getEdges().size() > 0) {
 						composite.setEdges(n.getEdges());
@@ -105,17 +106,19 @@ public class CC6 extends CC6Helper implements Tool {
 			System.err.println("Usage: -i <# of iterations> is a required command line argument");
 			System.exit(2);
 		}
-
+		int failCount = 0;
 		for(int iters = 0; iters < maxIters; iters++) {
-			println("=========" + iters + "==========");
+//			println("=========" + iters + "==========");
 			JobConf conf = getJobConf(args, mapNum, redNum);
-			String input = (iters == 0) ? "input" : "output-graph-" + iters;
+			String input = (iters == 0) ? "input-graph" : "output-graph-" + iters;
 			FileInputFormat.setInputPaths(conf, new Path(input));
 			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iters + 1)));
-			JobClient.runJob(conf);
-			println("");
+			RunningJob job = JobClient.runJob(conf);
+//			println("");
+			failCount += job.isSuccessful() ? 0 : 1;
 		}
-		return 0;
+		println(failCount == 0 ? "SUCCESS!!!!!" : "FAILURE!!!!");
+		return failCount;
 	}
 	
 	private JobConf getJobConf(String[] args, int mapNum, int redNum) {
