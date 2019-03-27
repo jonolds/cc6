@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -14,8 +13,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-//import org.apache.commons.io.FileUtils;
-//import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -157,16 +154,13 @@ class CC6Helper extends Configured {
 		BufferedWriter bf = new BufferedWriter(new FileWriter("output" + File.separator + "outAll.txt"));
 		bf.write(output);
 		bf.close();
-//		FileUtils.writeStringToFile(new File("output" + File.separator + "outAll.txt"), output, "UTF-8", true);
 	}
 
 	static String getCombinedOutputsInFolderAsString(Configuration conf, String outFolder) throws IOException {
-//		Collection<File> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null);
 		List<File> out_parts = getFilesStartingWithInDir("part", outFolder).stream().map(x->new File(x)).collect(Collectors.toList());
 		List<String> out_lines = new ArrayList<>();
 		for(File file: out_parts)
 			out_lines.addAll(Files.readAllLines(file.toPath()));
-//			out_lines.addAll(FileUtils.readLines(file, "UTF-8"));
 		Collections.sort(out_lines);
 		return outFolder + "\n\t" + out_lines.stream().collect(Collectors.joining("\n\t"));
 	}
