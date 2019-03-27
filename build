@@ -5,6 +5,7 @@ mainclass="GraphSearch"
 # DELETE TAR / CLEAR STAGING
 rm $tarname.tar
 rm -R STAGING/*
+echo "gitkeep" > STAGING/git.keep
 # COPY EVERYTHING TO STAGING
 cp src/main/java/*.java -r input-graph STAGING
 cd STAGING
