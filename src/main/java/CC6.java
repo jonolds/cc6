@@ -110,7 +110,7 @@ public class CC6 extends CC6Helper implements Tool {
 		for(int iters = 0; iters < maxIters; iters++) {
 //			println("=========" + iters + "==========");
 			JobConf conf = getJobConf(args, mapNum, redNum);
-			String input = (iters == 0) ? "input" : "output-graph-" + iters;
+			String input = (iters == 0) ? "input-graph" : "output-graph-" + iters;
 			FileInputFormat.setInputPaths(conf, new Path(input));
 			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iters + 1)));
 			RunningJob job = JobClient.runJob(conf);
