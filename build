@@ -14,7 +14,7 @@ jar -cvf TestJar.jar *.class
 hadoop jar TestJar.jar $mainclass -m 3 -r 3 -i 9
 cat ./output-graph/outAll.txt
 # CREATE TAR
-tar -cvf ../$tarname.tar *.java input output-output-graph
+tar -cvf ../$tarname.tar *.java input-graph output-graph
 rm *.class
 cd ..
 
