@@ -148,6 +148,7 @@ class CC6Helper extends Configured {
 	static void combineOutputs(Configuration conf, String outDirPrefix) throws IOException {
 		List<String> outputStringsList = new ArrayList<>();
 		List<String> outDirs = getFilesStartingWithInDir(outDirPrefix, "output");
+		Collections.sort(outDirs);
 		for(String outFolder : outDirs) {
 			outputStringsList.add(getCombinedOutputsInFolderAsString(conf, outFolder));
 //			new Path(outFolder).getFileSystem(conf).delete(new Path(outFolder), true);
@@ -157,12 +158,10 @@ class CC6Helper extends Configured {
 	}
 
 	static String getCombinedOutputsInFolderAsString(Configuration conf, String outFolder) throws IOException {
-//		Collection<File> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null);
-		List<String> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null).stream().map(x->x.toString()).collect(Collectors.toList());
-		Collections.sort(out_parts);
+		Collection<File> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null);
 		List<String> out_lines = new ArrayList<>();
-		for(String filename: out_parts)
-			out_lines.addAll(FileUtils.readLines(new File(filename), "UTF-8"));
+		for(File file: out_parts)
+			out_lines.addAll(FileUtils.readLines(file, "UTF-8"));
 		Collections.sort(out_lines);
 		return outFolder + "\n\t" + out_lines.stream().collect(Collectors.joining("\n\t"));
 	}
