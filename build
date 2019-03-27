@@ -6,7 +6,7 @@ mainclass="CC6"
 rm $tarname.tar
 rm -R STAGING/*
 # COPY EVERYTHING TO STAGING
-cp src/main/java/*.java -r input STAGING
+cp src/main/java/*.java -r input-graph STAGING
 cd STAGING
 # TEST - compile / put in jar / delete .class / run
 javac *.java -Xlint:deprecation -d .
