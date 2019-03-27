@@ -36,19 +36,15 @@ public class CC6 extends CC6Helper implements Tool {
 	/** WHITE and BLACK nodes are emitted as is. For every edge of a GRAY node, we emit a new Node with 
 	 * distance incremented by one. The Color.GRAY node is then colored black and is also emitted. */
 	public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
+		
 		public void map(LongWritable key, Text value, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
 			Node node = new Node(value.toString());
-
-			// For each GRAY node, emit each of the edges as a new node (also GRAY)
 			if (node.getColor() == Color.GRAY) {
-				for(int i = 0; i < node.getEdges().size(); i++) {
-					Node dummynode = new Node(node.getEdges().get(i));
-					dummynode.setCost(node.getWeights().get(i) + node.getCost());
-					dummynode.setColor(Color.GRAY);
-					output.collect(new IntWritable(dummynode.getId()), dummynode.getLine());
-				}
+				for(int i = 0; i < node.getEdges().size(); i++)
+					output.collect(new IntWritable(node.getEdges().get(i)), node.getSpawnText(i));
 				node.setColor(Color.BLACK);
 			}
+			// Emit current node. White and Black are sent as is. Grays have been set to Black in previous block.
 			output.collect(new IntWritable(node.getId()), node.getLine());
 		}
 	}

@@ -26,6 +26,7 @@ public class Node {
 	}
 
 	public Node(int id) { this.id = id; }
+	public Node(int id, int cost, Color color) { this.id = id; this.cost = cost; this.color = color; }
 		
 	public Text getLine() {
 		StringBuffer s = new StringBuffer(edges.stream().map(x->x.toString()).collect(Collectors.joining(",")) + "|");
@@ -33,7 +34,11 @@ public class Node {
 		s.append(this.cost < Integer.MAX_VALUE ? this.cost : "Integer.MAX_VALUE").append("|");
 		s.append(color.toString());
 		return new Text(s.toString());
-	}	
+	}
+	
+	public Text getSpawnText(int i) {
+		return new Text("||" + (cost + weights.get(i)) + "|GRAY");
+	}
 
 	public int getId() { return this.id; }
 	

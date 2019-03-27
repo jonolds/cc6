@@ -1,6 +1,6 @@
 #!/bin/bash
 tarname="pa6_olds"
-mainclass="GraphSearch"
+mainclass="CC6"
 
 # DELETE TAR / CLEAR STAGING
 rm $tarname.tar
@@ -14,7 +14,7 @@ jar -cvf TestJar.jar *.class
 hadoop jar TestJar.jar $mainclass input output
 # cat ./output/part-r-00000
 # CREATE TAR
-tar -cvf ../$tarname.tar *.java input output answer.txt
+tar -cvf ../$tarname.tar *.java input output
 cd ..
 
 
