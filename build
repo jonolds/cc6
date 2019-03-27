@@ -11,10 +11,10 @@ cd STAGING
 # TEST - compile / put in jar / delete .class / run
 javac *.java -Xlint:deprecation -d .
 jar -cvf TestJar.jar *.class
-hadoop jar TestJar.jar $mainclass input output
+hadoop jar TestJar.jar $mainclass input output-graph
 cat ./output-graph/outAll.txt
 # CREATE TAR
-tar -cvf ../$tarname.tar *.java input output
+tar -cvf ../$tarname.tar *.java input output-output-graph
 rm *.class
 cd ..
 
