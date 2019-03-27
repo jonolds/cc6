@@ -3,8 +3,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Spliterators;
@@ -12,8 +10,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.WildcardFileFilter;
+//import org.apache.commons.io.FileUtils;
+//import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -137,7 +135,7 @@ public class GraphSearch extends CC6Helper implements Tool {
 		clearOutput(conf);
 		int res = ToolRunner.run(conf, new GraphSearch(), args);
 		println(res == 0 ? "SUCCESS!!!!!" : "FAILURE!!!!");
-		combineOutputs(conf, "output-graph");
+//		combineOutputs(conf, "output-graph");
 		System.exit(res);
 	}
 }
@@ -150,25 +148,25 @@ class CC6Helper extends Configured {
 			new Path(folder).getFileSystem(conf).delete(new Path(folder), true);
 	}
 	
-	static void combineOutputs(Configuration conf, String outDirPrefix) throws IOException {
-		List<String> outputStringsList = new ArrayList<>();
-		List<String> outDirs = getFilesStartingWithInDir(outDirPrefix, "output");
-		for(String outFolder : outDirs) {
-			outputStringsList.add(getCombinedOutputsInFolderAsString(conf, outFolder));
-//			new Path(outFolder).getFileSystem(conf).delete(new Path(outFolder), true);
-		}
-		String output = outputStringsList.stream().collect(Collectors.joining("\n"));
-		FileUtils.writeStringToFile(new File("output" + File.separator + "outAll.txt"), output, "UTF-8", true);
-	}
+//	static void combineOutputs(Configuration conf, String outDirPrefix) throws IOException {
+//		List<String> outputStringsList = new ArrayList<>();
+//		List<String> outDirs = getFilesStartingWithInDir(outDirPrefix, "output");
+//		for(String outFolder : outDirs) {
+//			outputStringsList.add(getCombinedOutputsInFolderAsString(conf, outFolder));
+////			new Path(outFolder).getFileSystem(conf).delete(new Path(outFolder), true);
+//		}
+//		String output = outputStringsList.stream().collect(Collectors.joining("\n"));
+//		FileUtils.writeStringToFile(new File("output" + File.separator + "outAll.txt"), output, "UTF-8", true);
+//	}
 
-	static String getCombinedOutputsInFolderAsString(Configuration conf, String outFolder) throws IOException {
-		Collection<File> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null);
-		List<String> out_lines = new ArrayList<>();
-		for(File file: out_parts)
-			out_lines.addAll(FileUtils.readLines(file, "UTF-8"));
-		Collections.sort(out_lines);
-		return outFolder + "\n\t" + out_lines.stream().collect(Collectors.joining("\n\t"));
-	}
+//	static String getCombinedOutputsInFolderAsString(Configuration conf, String outFolder) throws IOException {
+//		Collection<File> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null);
+//		List<String> out_lines = new ArrayList<>();
+//		for(File file: out_parts)
+//			out_lines.addAll(FileUtils.readLines(file, "UTF-8"));
+//		Collections.sort(out_lines);
+//		return outFolder + "\n\t" + out_lines.stream().collect(Collectors.joining("\n\t"));
+//	}
 	
 	static List<String> getFilesStartingWithInDir(String start, String dir) throws IOException {
 		List<String> dirs = new ArrayList<>();
