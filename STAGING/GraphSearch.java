@@ -1,4 +1,6 @@
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -12,8 +14,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.WildcardFileFilter;
+//import org.apache.commons.io.FileUtils;
+//import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -148,21 +150,23 @@ class CC6Helper extends Configured {
 	static void combineOutputs(Configuration conf, String outDirPrefix) throws IOException {
 		List<String> outputStringsList = new ArrayList<>();
 		List<String> outDirs = getFilesStartingWithInDir(outDirPrefix, "output");
-		for(String outFolder : outDirs) {
+		Collections.sort(outDirs);
+		for(String outFolder : outDirs)
 			outputStringsList.add(getCombinedOutputsInFolderAsString(conf, outFolder));
-//			new Path(outFolder).getFileSystem(conf).delete(new Path(outFolder), true);
-		}
 		String output = outputStringsList.stream().collect(Collectors.joining("\n"));
-		FileUtils.writeStringToFile(new File("output" + File.separator + "outAll.txt"), output, "UTF-8", true);
+		BufferedWriter bf = new BufferedWriter(new FileWriter("output" + File.separator + "outAll.txt"));
+		bf.write(output);
+		bf.close();
+//		FileUtils.writeStringToFile(new File("output" + File.separator + "outAll.txt"), output, "UTF-8", true);
 	}
 
 	static String getCombinedOutputsInFolderAsString(Configuration conf, String outFolder) throws IOException {
 //		Collection<File> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null);
-		List<String> out_parts = FileUtils.listFiles(new File(outFolder), new WildcardFileFilter("part*"), null).stream().map(x->x.toString()).collect(Collectors.toList());
-		Collections.sort(out_parts);
+		List<File> out_parts = getFilesStartingWithInDir("part", outFolder).stream().map(x->new File(x)).collect(Collectors.toList());
 		List<String> out_lines = new ArrayList<>();
-		for(String filename: out_parts)
-			out_lines.addAll(FileUtils.readLines(new File(filename), "UTF-8"));
+		for(File file: out_parts)
+			out_lines.addAll(Files.readAllLines(file.toPath()));
+//			out_lines.addAll(FileUtils.readLines(file, "UTF-8"));
 		Collections.sort(out_lines);
 		return outFolder + "\n\t" + out_lines.stream().collect(Collectors.joining("\n\t"));
 	}
