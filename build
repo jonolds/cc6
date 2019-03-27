@@ -1,6 +1,6 @@
 #!/bin/bash
 tarname="pa6_olds"
-mainclass="CC6"
+mainclass="GraphSearch"
 
 # DELETE TAR / CLEAR STAGING
 rm $tarname.tar
@@ -12,9 +12,9 @@ cd STAGING
 javac *.java -Xlint:deprecation -d .
 jar -cvf TestJar.jar *.class
 hadoop jar TestJar.jar $mainclass -m 3 -r 3 -i 9
-cat ./output-graph/outAll.txt
+cat ./output/outAll.txt
 # CREATE TAR
-tar -cvf ../$tarname.tar *.java input-graph output-graph
+tar -cvf ../$tarname.tar *.java input-graph output
 rm *.class
 cd ..
 

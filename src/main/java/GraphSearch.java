@@ -33,7 +33,7 @@ import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-public class CC6 extends CC6Helper implements Tool {
+public class GraphSearch extends CC6Helper implements Tool {
 	/** WHITE and BLACK nodes are emitted as is. For every edge of a GRAY node, we emit a new Node with 
 	 * distance incremented by one. The Color.GRAY node is then colored black and is also emitted. */
 	public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
@@ -110,19 +110,18 @@ public class CC6 extends CC6Helper implements Tool {
 		for(int iters = 0; iters < maxIters; iters++) {
 //			println("=========" + iters + "==========");
 			JobConf conf = getJobConf(args, mapNum, redNum);
-			String input = (iters == 0) ? "input-graph" : "output-graph-" + iters;
+			String input = (iters == 0) ? "input-graph" : "output" + File.separator + "output-graph-" + iters;
 			FileInputFormat.setInputPaths(conf, new Path(input));
-			FileOutputFormat.setOutputPath(conf, new Path("output-graph-" + (iters + 1)));
+			FileOutputFormat.setOutputPath(conf, new Path("output" + File.separator + "output-graph-" + (iters + 1)));
 			RunningJob job = JobClient.runJob(conf);
 //			println("");
 			failCount += job.isSuccessful() ? 0 : 1;
 		}
-		println(failCount == 0 ? "SUCCESS!!!!!" : "FAILURE!!!!");
 		return failCount;
 	}
 	
 	private JobConf getJobConf(String[] args, int mapNum, int redNum) {
-		JobConf conf = new JobConf(getConf(), CC6.class);
+		JobConf conf = new JobConf(getConf(), GraphSearch.class);
 		conf.setJobName("graphsearch");
 		conf.setOutputKeyClass(IntWritable.class);
 		conf.setOutputValueClass(Text.class);
@@ -136,13 +135,15 @@ public class CC6 extends CC6Helper implements Tool {
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
 		clearOutput(conf);
-		int res = ToolRunner.run(conf, new CC6(), args);
+		int res = ToolRunner.run(conf, new GraphSearch(), args);
+		println(res == 0 ? "SUCCESS!!!!!" : "FAILURE!!!!");
 		combineOutputs(conf, "output-graph");
 		System.exit(res);
 	}
 }
 
 class CC6Helper extends Configured {
+	
 	static void clearOutput(Configuration conf) throws IllegalArgumentException, IOException {
 		List<String> outDirs = Files.list(Paths.get("")).map(x->x.toString()).filter(x->x.startsWith("output")).collect(Collectors.toList());
 		for(String folder : outDirs)
@@ -151,13 +152,13 @@ class CC6Helper extends Configured {
 	
 	static void combineOutputs(Configuration conf, String outDirPrefix) throws IOException {
 		List<String> outputStringsList = new ArrayList<>();
-		List<String> outDirs = getFilesStartingWithInDir(outDirPrefix, ".");
+		List<String> outDirs = getFilesStartingWithInDir(outDirPrefix, "output");
 		for(String outFolder : outDirs) {
 			outputStringsList.add(getCombinedOutputsInFolderAsString(conf, outFolder));
-			new Path(outFolder).getFileSystem(conf).delete(new Path(outFolder), true);
+//			new Path(outFolder).getFileSystem(conf).delete(new Path(outFolder), true);
 		}
 		String output = outputStringsList.stream().collect(Collectors.joining("\n"));
-		FileUtils.writeStringToFile(new File(outDirPrefix + File.separator + "outAll.txt"), output, "UTF-8", true);
+		FileUtils.writeStringToFile(new File("output" + File.separator + "outAll.txt"), output, "UTF-8", true);
 	}
 
 	static String getCombinedOutputsInFolderAsString(Configuration conf, String outFolder) throws IOException {
