@@ -55,9 +55,7 @@ public class GraphSearch extends CC6Helper implements Tool {
 		public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
 			List<String> vals = iterFiniteStream(values).map(x->x.toString()).collect(Collectors.toList());
 			Node composite = new Node(key.get());
-//			print(key);
 			if(vals.size() == 1) {
-//				println("\t" + vals.get(0));
 				composite = new Node(key.get() + "\t" + vals.get(0));	
 			}
 			
@@ -69,7 +67,6 @@ public class GraphSearch extends CC6Helper implements Tool {
 				int minCostIndex = 0;
 				//GET EDGES AND WEIGHTS
 				for(int i  = 0; i < nodes.size(); i++) {
-//					println("\t" + vals.get(i));
 					Node n = nodes.get(i);
 					if(n.getEdges().size() > 0) {
 						composite.setEdges(n.getEdges());
@@ -106,13 +103,11 @@ public class GraphSearch extends CC6Helper implements Tool {
 		}
 		int failCount = 0;
 		for(int iters = 0; iters < maxIters; iters++) {
-//			println("=========" + iters + "==========");
 			JobConf conf = getJobConf(args, mapNum, redNum);
 			String input = (iters == 0) ? "input-graph" : "output" + File.separator + "output-graph-" + iters;
 			FileInputFormat.setInputPaths(conf, new Path(input));
 			FileOutputFormat.setOutputPath(conf, new Path("output" + File.separator + "output-graph-" + (iters + 1)));
 			RunningJob job = JobClient.runJob(conf);
-//			println("");
 			failCount += job.isSuccessful() ? 0 : 1;
 		}
 		return failCount;
